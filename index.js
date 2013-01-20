@@ -5,8 +5,8 @@
 */ 
 
 var init = false,
-	audioContext,
-	game,
+    audioContext,
+    game,
     audioDestination;
 
 
@@ -74,13 +74,13 @@ exports.PositionAudio.prototype.initSource = function() {
 
 
 exports.PositionAudio.prototype.play = function() {
-  var self = this;
-  if (!self.ready) throw new Error('Audio not ready. Did you call load?');
+	var self = this;
+	if (!self.ready) throw new Error('Audio not ready. Did you call load?');
 
-  self.panner.connect(audioDestination);
-  self.source.connect(self.panner);
-  self.source.noteOn(0);
-  self.isPlaying = true;
+	self.panner.connect(audioDestination);
+	self.source.connect(self.panner);
+	self.source.noteOn(0);
+	self.isPlaying = true;
 };
 
 
@@ -109,7 +109,7 @@ function tick() {
 	var velocity = game.controls.velocity.clone();
 
 	audioContext.listener.setPosition(position.x, position.y, position.z);
-    audioContext.listener.setVelocity(velocity.x, velocity.y, velocity.z);
+	audioContext.listener.setVelocity(velocity.x, velocity.y, velocity.z);
 
 
 	var m = game.camera.matrixWorld;
