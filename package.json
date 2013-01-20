@@ -1,0 +1,26 @@
+{
+    "name" : "voxel-audio",
+    "version" : "0.0.1",
+    "description" : "Use positional audio in your voxel.js game",
+    "devDependencies" : {
+        "voxel-engine" : "0.2.9"
+    },
+    "repository" : {
+        "type" : "git",
+        "url" : "git://github.com/ryanramage/voxel-audio.git"
+    },
+    "homepage" : "https://github.com/ryanramage/voxel-audio",
+    "keywords" : [
+        "voxel",
+        "game",
+        "webgl",
+        "three.js",
+        "audio"
+    ],
+    "author" : {
+        "name" : "Ryan Ramage",
+        "email" : "ryan@eckoit.com",
+        "url" : "http://github.com/ryanramage"
+    },
+    "license" : "MIT"
+}
