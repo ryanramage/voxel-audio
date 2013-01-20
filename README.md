@@ -1,4 +1,4 @@
-# voxel-storage
+# voxel-audio
 
 Use positional audio in your [voxeljs.com](http://voxeljs.com) world.
 
