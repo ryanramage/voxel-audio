@@ -47,11 +47,11 @@ var pickSound = new audio.PositionAudio({
   coneOuterAngle : 360,
   coneInnerAngle : 360,
   refDistance : 2.0,
-  loop: true  
+  loop: true
 });
 pickSound.load(function(err){
   pickSound.play();
-})
+});
 
 
 
@@ -63,13 +63,30 @@ var music = new audio.PositionAudio({
   startingPosition: [9, 516, -837],
   coneOuterAngle : 360,
   coneInnerAngle : 360,
-  rolloffFactor: .4,
+  rolloffFactor: 0.4,
   refDistance : 5,
-  loop: true  
+  loop: true
 });
 music.load(function(err){
   music.play();
-})
+});
+
+
+
+game.createBlock({x: 15, y: 490, z: 849}, 5);
+var mediaElement = document.getElementById('radio-paradise');
+var sourceNode = audio.getAudioContext().createMediaElementSource(mediaElement);
+
+var radio = new audio.PositionAudio({
+  source : sourceNode,
+  startingPosition: [15, 490, 849],
+  coneOuterAngle : 360,
+  coneInnerAngle : 360,
+  rolloffFactor: 0.4,
+  refDistance : 3,
+  loop: true
+});
+radio.play();
 
 
 
