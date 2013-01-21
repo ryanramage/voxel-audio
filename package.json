@@ -1,6 +1,6 @@
 {
     "name" : "voxel-audio",
-    "version" : "0.0.1",
+    "version" : "0.0.2",
     "description" : "Use positional audio in your voxel.js game",
     "devDependencies" : {
         "voxel-engine" : "0.2.9"

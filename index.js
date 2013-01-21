@@ -19,6 +19,11 @@ exports.initGameAudio = function(game_) {
 	init = true;
 };
 
+
+exports.getAudioContext = function() {
+	return audioContext;
+};
+
 exports.PositionAudio = function(options) {
 	var self = this;
 
@@ -79,7 +84,7 @@ exports.PositionAudio.prototype.play = function() {
 
 	self.panner.connect(audioDestination);
 	self.source.connect(self.panner);
-	self.source.noteOn(0);
+	if (self.source.noteOn) self.source.noteOn(0);
 	self.isPlaying = true;
 };
 
