@@ -53,6 +53,32 @@ pickSound.load(function(err){
   pickSound.play();
 })
 
+
+
+// example of a more ambient sound
+game.createBlock({x: 5, y: 541, z: -857}, 4);
+
+var music = new audio.PositionAudio({
+  url : './Miaow-07-Bubble.m4a',
+  startingPosition: [9, 516, -837],
+  coneOuterAngle : 360,
+  coneInnerAngle : 360,
+  rolloffFactor: .4,
+  refDistance : 5,
+  loop: true  
+});
+music.load(function(err){
+  music.play();
+})
+
+
+
+setInterval(function(){
+  var position = game.controls.yawObject.position.clone();
+  console.log(position);
+}, 4000);
+
+
 var currentMaterial = 1
 
 blockSelector.on('select', function(material) {
