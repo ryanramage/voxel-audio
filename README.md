@@ -2,6 +2,8 @@
 
 Use positional audio in your [voxeljs.com](http://voxeljs.com) world.
 
+demo [http://ryanramage.github.com/voxel-audio/](http://ryanramage.github.com/voxel-audio/)
+
 **not done: work in progress**
 
 
