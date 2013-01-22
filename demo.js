@@ -90,10 +90,6 @@ radio.play();
 
 
 
-setInterval(function(){
-  var position = game.controls.yawObject.position.clone();
-  console.log(position);
-}, 4000);
 
 
 var currentMaterial = 1

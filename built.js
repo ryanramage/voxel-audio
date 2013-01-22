@@ -76889,8 +76889,8 @@ require.define("/node_modules/voxel-audio/index.js",function(require,module,expo
 */ 
 
 var init = false,
-	audioContext,
-	game,
+    audioContext,
+    game,
     audioDestination;
 
 
@@ -76963,13 +76963,13 @@ exports.PositionAudio.prototype.initSource = function() {
 
 
 exports.PositionAudio.prototype.play = function() {
-  var self = this;
-  if (!self.ready) throw new Error('Audio not ready. Did you call load?');
+	var self = this;
+	if (!self.ready) throw new Error('Audio not ready. Did you call load?');
 
-  self.panner.connect(audioDestination);
-  self.source.connect(self.panner);
-  if (self.source.noteOn) self.source.noteOn(0);
-  self.isPlaying = true;
+	self.panner.connect(audioDestination);
+	self.source.connect(self.panner);
+	if (self.source.noteOn) self.source.noteOn(0);
+	self.isPlaying = true;
 };
 
 
@@ -76994,36 +76994,24 @@ exports.PositionAudio.prototype.load = function(callback) {
 
 function tick() {
 
-	var position = game.controls.yawObject.position.clone();
+	game.camera.updateMatrixWorld();
+	var position = game.camera.matrixWorld.getPosition();
 	var velocity = game.controls.velocity.clone();
 
 	audioContext.listener.setPosition(position.x, position.y, position.z);
-    audioContext.listener.setVelocity(velocity.x, velocity.y, velocity.z);
+	audioContext.listener.setVelocity(velocity.x, velocity.y, velocity.z);
 
 
 	var m = game.camera.matrixWorld;
-
-	var mx = m.n14, my = m.n24, mz = m.n34;
-	m.n14 = m.n24 = m.n34 = 0;
-
 	// Multiply the orientation vector by the world matrix of the camera.
-	var vec = new game.THREE.Vector3(0,0,-1);
-	m.multiplyVector3(vec);
-	vec.normalize();
+	var vec = m.multiplyVector3(new game.THREE.Vector3(0,0,1));
+	var direction  = vec.subSelf(position).normalize();
+	var vec2 = m.multiplyVector3(new game.THREE.Vector3(0,-1,0));
+	var up_direction = vec2.subSelf(position).normalize();
 
-	// Multiply the up vector by the world matrix.
-	var up = new game.THREE.Vector3(0,-1,0);
-	m.multiplyVector3(up);
-	up.normalize();
 
 	// Set the orientation and the up-vector for the listener.
-	audioContext.listener.setOrientation(vec.x, vec.y, vec.z, up.x, up.y, up.z);
-
-	m.n14 = mx;
-	m.n24 = my;
-	m.n34 = mz;
-
-
+	audioContext.listener.setOrientation(direction.x, direction.y, direction.z, up_direction.x, up_direction.y, up_direction.z);
 }
 
 });
@@ -77120,10 +77108,6 @@ radio.play();
 
 
 
-setInterval(function(){
-  var position = game.controls.yawObject.position.clone();
-  console.log(position);
-}, 4000);
 
 
 var currentMaterial = 1
