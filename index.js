@@ -4,7 +4,8 @@
  * https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html#PannerNode
 */
 
-var init = false,
+var bresenham3d = require('bresenham3d'),
+    init = false,
     calculateAbsorption  = false,
     audioInstances = [],
     defaultDensity = 1,
@@ -169,6 +170,8 @@ function adjustDensityGain(audio, position) {
 		densitySum: 0,
 		totalCount: 0
 	};
+	bresenham3d(audio.position, position, memo, calculatePointDensity, setDensityGain);
+
 }
 
 function calculatePointDensity(pos, memo) {
