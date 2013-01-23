@@ -23,10 +23,13 @@ viking.position.y = 60
 game.scene.add(viking)
 
 // this must be done first, before any other audio stuff
-audio.initGameAudio(game);
+audio.initGameAudio(game, {
+  calculateAbsorption: true
+});
 
 // example of a very focused sound. Narrow cone angles
 var laugh = new audio.PositionAudio({
+  name: 'laugh',
   url : './132816__nanakisan__evil-laugh-19.mp3',
   startingPosition: [0, 93, 0],
   coneOuterAngle : 100,
@@ -42,6 +45,7 @@ laugh.load(function(err){
 
 // example of a more ambient sound
 var pickSound = new audio.PositionAudio({
+  name: 'pick',  
   url : './71822__benboncan__mandrill-striking-rock.mp3',
   startingPosition: [0, 93, 0],
   coneOuterAngle : 360,
@@ -59,6 +63,7 @@ pickSound.load(function(err){
 game.createBlock({x: 5, y: 541, z: -857}, 4);
 
 var music = new audio.PositionAudio({
+  name: 'music',
   url : './Miaow-07-Bubble.m4a',
   startingPosition: [9, 516, -837],
   coneOuterAngle : 360,
@@ -78,6 +83,7 @@ var mediaElement = document.getElementById('radio-paradise');
 var sourceNode = audio.getAudioContext().createMediaElementSource(mediaElement);
 
 var radio = new audio.PositionAudio({
+  name: 'radio',    
   source : sourceNode,
   startingPosition: [15, 490, 849],
   coneOuterAngle : 360,

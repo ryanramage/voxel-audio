@@ -76886,19 +76886,31 @@ require.define("/node_modules/voxel-audio/index.js",function(require,module,expo
  * Thanks to the following sources of info
  * http://www.html5rocks.com/en/tutorials/webaudio/games/
  * https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html#PannerNode
-*/ 
+*/
 
-var init = false,
+var bresenham3d = require('bresenham3d'),
+    init = false,
+    calculateAbsorption  = false,
+    audioInstances = [],
+    defaultDensity = 1,
+    densityMapping = [],
+    densityGainMin = 0.005,
     audioContext,
     game,
     audioDestination;
 
 
-exports.initGameAudio = function(game_) {
+exports.initGameAudio = function(game_, settings) {
 	audioContext = new webkitAudioContext();
 	audioDestination = audioContext.destination;
-	// Then render the camera on tick
 	game = game_;
+
+	if (!settings) settings = {};
+	if (settings.calculateAbsorption) calculateAbsorption = true;
+	if (settings.defaultDensity) defaultDensity = settings.defaultDensity;
+	if (settings.densityMapping) densityMapping = settings.densityMapping;
+	if (settings.densityGainMin) densityGainMin = settings.densityGainMin;
+
 	game.on('tick', tick);
 	init = true;
 };
@@ -76919,16 +76931,26 @@ exports.PositionAudio = function(options) {
 	if (options.url) self.initURL();
 	if (options.buffer) self.initBuffer();
 	if (options.source) self.initSource();
+	if (options.name) self.name = options.name;
+
+	// should add a distroy so not to leave things around....
+	audioInstances.push(self);
 };
 
 exports.PositionAudio.prototype.createPanner = function() {
 	var self = this;
 	self.panner = audioContext.createPanner();
+	self.gainNode   = audioContext.createGainNode();
 
 	var startingPosition = self.options.startingPosition;
 	if (!startingPosition || startingPosition.length !== 3) throw new Error('startingPosition required option. format: [x,y,z]');
 
 	self.panner.setPosition(startingPosition[0], startingPosition[1], startingPosition[2]);
+	self.position = {
+		x: startingPosition[0],
+		y: startingPosition[1],
+		z: startingPosition[2]
+	};
 	self.panner.coneOuterGain = self.options.coneOuterGain || Number(0);
 	self.panner.coneOuterAngle = self.options.coneOuterAngle || 360;
 	self.panner.coneInnerAngle = self.options.coneInnerAngle || 350;
@@ -76961,12 +76983,12 @@ exports.PositionAudio.prototype.initSource = function() {
 };
 
 
-
 exports.PositionAudio.prototype.play = function() {
 	var self = this;
 	if (!self.ready) throw new Error('Audio not ready. Did you call load?');
 
-	self.panner.connect(audioDestination);
+	self.gainNode.connect(audioDestination);
+	self.panner.connect(self.gainNode);
 	self.source.connect(self.panner);
 	if (self.source.noteOn) self.source.noteOn(0);
 	self.isPlaying = true;
@@ -77012,7 +77034,158 @@ function tick() {
 
 	// Set the orientation and the up-vector for the listener.
 	audioContext.listener.setOrientation(direction.x, direction.y, direction.z, up_direction.x, up_direction.y, up_direction.z);
+
+
+	if (!calculateAbsorption) return;
+	audioInstances.forEach(function(audio){
+		adjustDensityGain(audio, position);
+	});
 }
+
+// calculate absorption of things in the way. this is using the Beer-Lambert Law
+// see https://en.wikipedia.org/wiki/Beer%E2%80%93Lambert_law
+function adjustDensityGain(audio, position) {
+	var totalDistance = Math.sqrt( (Math.abs(audio.position.x - position.x))^2 + (Math.abs(audio.position.y - position.y))^2 + (Math.abs(audio.position.z - position.z))^2 );
+	var memo = {
+		audio: audio,
+		position: position,
+		totalDistance: totalDistance,
+		count: 0,
+		densitySum: 0,
+		totalCount: 0
+	};
+	bresenham3d(audio.position, position, memo, calculatePointDensity, setDensityGain);
+
+}
+
+function calculatePointDensity(pos, memo) {
+	memo.totalCount++;
+	var block = game.getBlock(pos);
+	if (block) {
+		memo.count++;
+		var density = densityMapping[block] || defaultDensity;
+		var block_distance_from_listener = Math.sqrt( (Math.abs(pos.x - memo.position.x))^2 + (Math.abs(pos.y - memo.position.y))^2 + (Math.abs(pos.z - memo.position.z))^2 );
+		var percent = block_distance_from_listener/memo.totalDistance;
+		memo.densitySum+= (((1.4*percent)-0.5)^2 + 0.5); // a u shape
+	}
+}
+
+function setDensityGain(memo) {
+	var gain = 1;
+	if (memo.count > 0) {
+		var exp = -1 * (memo.densitySum/120);
+		gain = Math.pow(10, exp);
+		if (gain < densityGainMin) gain = 0;
+		if (gain > 1) gain = 1;
+	}
+	memo.audio.gainNode.gain.value = gain;
+}
+
+
+
+});
+
+require.define("/node_modules/voxel-audio/node_modules/bresenham3d/package.json",function(require,module,exports,__dirname,__filename,process,global){module.exports = {}
+});
+
+require.define("/node_modules/voxel-audio/node_modules/bresenham3d/index.js",function(require,module,exports,__dirname,__filename,process,global){/*
+  arguments
+  ---------
+  
+  - `from_position` - an object with x,y,z properties, eg {x: 23, y: -21, z: 49}
+  - `to_position` - an object with x,y,z properties, eg {x: -32, y: 40, z: 49}
+  - 'memo' - an object used to store values (see onPoint below). eg {count: 0}
+  - `onPoint` - a function that is called for each integer point found on the path. function(pos, memo) {}
+  - 'onComplete' - [optional] a function that is called when complete. function(memo) {}
+
+*/
+module.exports = function(from_position, to_position, memo, onPoint, onComplete) {
+	var temp;
+
+	// safty first kids
+	var x0 = Math.floor(from_position.x);
+	var y0 = Math.floor(from_position.y);
+	var z0 = Math.floor(from_position.z);
+	var x1 = Math.floor(to_position.x);
+	var y1 = Math.floor(to_position.y);
+	var z1 = Math.floor(to_position.z);
+
+	//'steep' xy Line, make longest delta x plane
+	var swap_xy = Math.abs(y1 - y0) > Math.abs(x1 - x0);
+	if (swap_xy) {
+		temp = x0; x0 = y0; y0 = temp; //swap(x0, y0);
+		temp = x1; x1 = y1; y1 = temp; //swap(x1, y1);
+	}
+    //do same for xz
+    var swap_xz = Math.abs(z1 - z0) > Math.abs(x1 - x0);
+    if (swap_xz) {
+        temp = x0; x0 = z0; z0 = temp;  //swap(x0, z0);
+        temp = x1; x1 = z1; z1 = temp;  //swap(x1, z1);
+    }
+
+    //delta is Length in each plane
+    var delta_x = Math.abs(x1 - x0);
+    var delta_y = Math.abs(y1 - y0);
+    var delta_z = Math.abs(z1 - z0);
+    
+    //drift controls when to step in 'shallow' planes
+    //starting value keeps Line centred
+    var drift_xy = (delta_x / 2);
+    var drift_xz = (delta_x / 2);
+
+    //direction of line
+    var step_x = 1;
+    if (x0 > x1) step_x = -1;
+    var step_y = 1;
+    if (y0 > y1) step_y = -1;
+    var step_z = 1;
+    if (z0 > z1) step_z = -1;
+
+
+    //starting point
+    var y = y0;
+    var z = z0;
+
+    var cx, cy, cz;
+
+    //step through longest delta (which we have swapped to x)
+    for (var x = x0; x !== x1; x += step_x) {
+        
+        //copy position
+        cx = x;    cy = y;    cz = z;
+
+        //unswap (in reverse)
+        if (swap_xz) {
+			temp = cx; cx = cz; cz = temp; //swap(cx, cz);
+        }
+        if (swap_xy) {
+			temp = cx; cx = cy; cy = temp; //swap(cx, cy);
+        }
+        //passes through this point
+        if (onPoint) onPoint({x: cx, y: cy, z: cz}, memo);
+        
+        
+        //update progress in other planes
+        drift_xy = drift_xy - delta_y;
+        drift_xz = drift_xz - delta_z;
+
+        //step in y plane
+        if (drift_xy < 0) {
+            y = y + step_y;
+            drift_xy = drift_xy + delta_x;
+        }
+        
+        //same in z
+        if (drift_xz < 0) {
+            z = z + step_z;
+            drift_xz = drift_xz + delta_x;
+        }
+    }
+    if (onComplete) onComplete(memo);
+
+
+};
+
 
 });
 
@@ -77041,10 +77214,13 @@ viking.position.y = 60
 game.scene.add(viking)
 
 // this must be done first, before any other audio stuff
-audio.initGameAudio(game);
+audio.initGameAudio(game, {
+  calculateAbsorption: true
+});
 
 // example of a very focused sound. Narrow cone angles
 var laugh = new audio.PositionAudio({
+  name: 'laugh',
   url : './132816__nanakisan__evil-laugh-19.mp3',
   startingPosition: [0, 93, 0],
   coneOuterAngle : 100,
@@ -77060,6 +77236,7 @@ laugh.load(function(err){
 
 // example of a more ambient sound
 var pickSound = new audio.PositionAudio({
+  name: 'pick',  
   url : './71822__benboncan__mandrill-striking-rock.mp3',
   startingPosition: [0, 93, 0],
   coneOuterAngle : 360,
@@ -77077,6 +77254,7 @@ pickSound.load(function(err){
 game.createBlock({x: 5, y: 541, z: -857}, 4);
 
 var music = new audio.PositionAudio({
+  name: 'music',
   url : './Miaow-07-Bubble.m4a',
   startingPosition: [9, 516, -837],
   coneOuterAngle : 360,
@@ -77096,6 +77274,7 @@ var mediaElement = document.getElementById('radio-paradise');
 var sourceNode = audio.getAudioContext().createMediaElementSource(mediaElement);
 
 var radio = new audio.PositionAudio({
+  name: 'radio',    
   source : sourceNode,
   startingPosition: [15, 490, 849],
   coneOuterAngle : 360,
