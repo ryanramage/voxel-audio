@@ -133,7 +133,7 @@ exports.PositionAudio.prototype.load = function(callback) {
 function tick() {
 
 	game.camera.updateMatrixWorld();
-	var position = game.camera.matrixWorld.getPosition();
+	var position = new game.THREE.Vector3().getPositionFromMatrix(game.camera.matrixWorld);
 	var velocity = game.controls.velocity.clone();
 
 	audioContext.listener.setPosition(position.x, position.y, position.z);
@@ -142,10 +142,12 @@ function tick() {
 
 	var m = game.camera.matrixWorld;
 	// Multiply the orientation vector by the world matrix of the camera.
-	var vec = m.multiplyVector3(new game.THREE.Vector3(0,0,1));
-	var direction  = vec.subSelf(position).normalize();
-	var vec2 = m.multiplyVector3(new game.THREE.Vector3(0,-1,0));
-	var up_direction = vec2.subSelf(position).normalize();
+	var vec = new game.THREE.Vector3(0,0,1);
+  vec.applyMatrix3(m);
+	var direction  = vec.sub(position).normalize();
+	var vec2 = new game.THREE.Vector3(0,-1,0);
+  vec.applyMatrix3(m);
+	var up_direction = vec2.sub(position).normalize();
 
 
 	// Set the orientation and the up-vector for the listener.
